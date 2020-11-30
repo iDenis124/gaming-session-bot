@@ -13,3 +13,4 @@ gameList = [AmongUs, SCPSL]
 currentGame = ""
 sessionOwner = 0
 gameCheck = 0
+4
