@@ -25,3 +25,8 @@ For when you finished playing\
 ### ?cancelhost
 For when there aren't enough people to play\
 ![](gifs/cancelhost.gif)
+##### ?help
+This is also a thing in case someone forgot the commands ~~come on it's only 3 you can do it~~
+# TODO
+Fix any time related commands like `?time` which should display the remiaining time until the current session, it now displays god knows what\
+Ping the users who reacted with a thumbs up but didn't join the game VC 
