@@ -2,19 +2,9 @@ import discord
 import os
 import games
 import settings
-# import time as timer
 import time
 import datetime
-
-
-# from datetime import datetime as datetimer  # , time
 # import threading
-
-
-# async def botClearStatus():
-#     await client.change_presence(activity=discord.Game(name=settings.noGameMessage))
-#     games.currentGame = ""
-
 
 class MyClient(discord.Client):
     async def on_ready(self):
@@ -51,46 +41,30 @@ class MyClient(discord.Client):
         if message.content.lower() == "?endhost" and (
                 message.author.id == 108530201708773376 or message.author.id == games.sessionOwner):
             await message.channel.send("Game session has ended!")
-            await client.change_presence(activity=discord.Game(name=settings.noGameMessage))
-            # noinspection PyUnboundLocalVariable
             await messageWithPing.unpin()
+            await client.change_presence(activity=discord.Game(name=settings.noGameMessage))
             games.currentGame = ""
 
         if message.content.lower() == "?cancelhost" and (
                 message.author.id == 108530201708773376 or message.author.id == games.sessionOwner):
-            # noinspection PyTypeChecker
-            await message.channel.send("<@&{0}> session has ended!".format(games.currentGame["roleID"]))
-            await client.change_presence(activity=discord.Game(name=settings.noGameMessage))
+            await message.channel.send("<@&{0}> session has been canceled!".format(games.currentGame["roleID"]))
             await messageWithPing.unpin()
+            await client.change_presence(activity=discord.Game(name=settings.noGameMessage))
             games.currentGame = ""
 
         if message.content.lower() == "?time":
             timeRemaining = str(datetime.timedelta(
                 seconds=dateDiffInSeconds(int(time.time()), settings.gameTime)))
             await message.channel.send("{0} remaining until the {1} session!".format(timeRemaining, games.currentGame))
-            # await message.channel.send("command is neat, but it apparently happens in 100+ years, and I won't fix it until KC Teaches Me Rust:tm:")
 
         if message.content.lower() == "?help":
             await message.channel.send(settings.helpCommand)
 
-
-#
-# def clearStatus():
-#     botClearStatus()
-#     print(dateDiffInSeconds(datetime.now(), settings.stopTime))
-#     timer.sleep(100)
-#     # timer.sleep(dateDiffInSeconds(datetime.now(), settings.stopTime))
-#     clearStatus()
-#
-#
 def dateDiffInSeconds(dt2, dt1):
     timedelta = dt2 - dt1
     # return timedelta.days * 24 * 3600 + timedelta.seconds
     return timedelta.seconds
 
-
-# TODO: fix the time errors
-#
 # exitFlag = 0
 #
 #
@@ -103,9 +77,8 @@ def dateDiffInSeconds(dt2, dt1):
 #
 #     def run(self):
 #         clearStatus()
-#
 
 client = MyClient()
-# clearStatusThread = myThread(1, "Thread-1", 1)
-# clearStatusThread.start()
 client.run(os.environ["BOTTOKEN"])
+# clearStatusThread = myThread(1, "5 AM Timer", 1)
+# clearStatusThread.start()
