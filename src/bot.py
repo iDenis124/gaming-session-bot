@@ -70,7 +70,7 @@ class MyClient(discord.Client):
                     await message.channel.send("{0} minutes remaining until the game session!".format(int(minutes)))
                 else:
                     await message.channel.send("{0} hours and {1} minutes remaining until the game session!".format(
-                        int(minutes / 60),
+                        int(hours),
                         int(minutes))
                         )
 
