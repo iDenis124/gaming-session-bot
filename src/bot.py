@@ -59,18 +59,21 @@ class MyClient(discord.Client):
 
         if message.content.lower() == "?time":
             minutes = int(secondsUntilTime(settings.gameTime) / 60)
-            # if (seconds / 3600) < 1:
-            #     await message.channel.send("{0} minutes remaining until the game session!".format(int(seconds / 60)))
-            # else:
-            #     if int(seconds / 60) >= 60:
-            #         await message.channel.send("{0} hours and {1} minutes remaining until the game session!".format(
-            #         int(seconds / 3600),
-            #         int(seconds / 60))
-            #         )
-            #     else:
-            #         pass
-            
-                
+            if minutes <= 0:
+                await message.channel.send("The session already started!")
+            else:
+                hours = 0
+                while minutes >= 60:
+                    minutes = minutes - 60
+                    hours = hours + 1
+                if hours == 0:
+                    await message.channel.send("{0} minutes remaining until the game session!".format(int(minutes)))
+                else:
+                    await message.channel.send("{0} hours and {1} minutes remaining until the game session!".format(
+                        int(minutes / 60),
+                        int(minutes))
+                        )
+
         if message.content.lower() == "?help":
             await message.channel.send(settings.helpCommand)
 
