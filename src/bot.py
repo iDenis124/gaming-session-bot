@@ -47,22 +47,35 @@ class MyClient(discord.Client):
 
         if message.content.lower() == "?cancelhost" and (
                 message.author.id == 108530201708773376 or message.author.id == games.sessionOwner):
+                #
+                #
+                # MAKE IT ONLY PING PEOPLE WHO REACTED WITH THE THUMBS UP
+                #
+                #
             await message.channel.send("<@&{0}> session has been canceled!".format(games.currentGame["roleID"]))
             await messageWithPing.unpin()
             await client.change_presence(activity=discord.Game(name=settings.noGameMessage))
             games.currentGame = ""
 
         if message.content.lower() == "?time":
-            timeRemaining = str(datetime.timedelta(seconds=dateDiffInSeconds(int(time.time()), settings.gameTime)))
-            await message.channel.send("{0} remaining until the {1} session!".format(timeRemaining, games.currentGame))
-
+            minutes = int(secondsUntilTime(settings.gameTime) / 60)
+            # if (seconds / 3600) < 1:
+            #     await message.channel.send("{0} minutes remaining until the game session!".format(int(seconds / 60)))
+            # else:
+            #     if int(seconds / 60) >= 60:
+            #         await message.channel.send("{0} hours and {1} minutes remaining until the game session!".format(
+            #         int(seconds / 3600),
+            #         int(seconds / 60))
+            #         )
+            #     else:
+            #         pass
+            
+                
         if message.content.lower() == "?help":
             await message.channel.send(settings.helpCommand)
 
-def dateDiffInSeconds(dt2, dt1):
-    timedelta = dt2 - dt1
-    # return timedelta.days * 24 * 3600 + timedelta.seconds
-    return timedelta.seconds
+def secondsUntilTime(val2):
+    return (val2 - datetime.datetime.now()).total_seconds()
 
 # exitFlag = 0
 #
