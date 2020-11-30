@@ -53,8 +53,7 @@ class MyClient(discord.Client):
             games.currentGame = ""
 
         if message.content.lower() == "?time":
-            timeRemaining = str(datetime.timedelta(
-                seconds=dateDiffInSeconds(int(time.time()), settings.gameTime)))
+            timeRemaining = str(datetime.timedelta(seconds=dateDiffInSeconds(int(time.time()), settings.gameTime)))
             await message.channel.send("{0} remaining until the {1} session!".format(timeRemaining, games.currentGame))
 
         if message.content.lower() == "?help":
