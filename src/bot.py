@@ -315,14 +315,14 @@ async def status(ctx):
 # async def addrole(ctx, user: discord.Member, role: discord.Role):
 
 
-@tasks.loop(seconds=10)
-# @tasks.loop(minutes=5)
+# @tasks.loop(seconds=10)
+@tasks.loop(minutes=5)
 async def change_status_at_session_start():
     global tmrw
     global stopTime
     if bool(currentSessionGame):
-        # timeToSleep = 600
-        timeToSleep = 10
+        timeToSleep = 600
+        # timeToSleep = 10
         if tmrw:
             await asyncio.sleep(seconds_until_time(datetime.datetime(datetime.datetime.now().year,
                                                                      datetime.datetime.now().month,
