@@ -1,190 +1,371 @@
 import asyncio
 import datetime
 import os
+from importlib import reload
 
 import discord
 from discord.ext import commands, tasks
+from discord.ext.commands.core import has_permissions, CheckFailure
 
-import games
 import settings
 
-client = commands.Bot(command_prefix="?")
+client = commands.Bot(command_prefix="?", case_insensitive=True)
+
+currentSessionGame = {}
+whoReactedWithYes = []
+whoReactedWithMaybe = []
+sessionOwner = 0
+sessionTime = datetime.datetime(datetime.datetime.now().year,
+                                datetime.datetime.now().month,
+                                datetime.datetime.now().day,
+                                20, 0, 0) + datetime.timedelta(days=1)
+foundGame = False
+stopTime = datetime.datetime(datetime.datetime.now().year,
+                             datetime.datetime.now().month,
+                             datetime.datetime.now().day,
+                             5, 0, 0) + datetime.timedelta(days=1)
+tmrw = False
 
 
 def seconds_until_time(val2):
-    return (val2 - datetime.datetime.now()).total_seconds()
+    return int((val2 - datetime.datetime.now()).total_seconds())
 
 
-async def clear_status():
-    await client.change_presence(activity=discord.Game(name=settings.noGameMessage))
-    games.currentGame = ""
-    games.currentSessionTime = ""
-    games.sessionRightNow = 0
-    games.sessionOwner = 0
-    games.messageToPing = ""
-    games.peopleWhoReacted = []
-    games.peopleWhoReactedAndNotInVC = []
-    games.peopleInVC = []
-
-
-async def change_status(game, timeElectricBoogaloo, statusMessage):
-    if statusMessage == "":
-        await client.change_presence(activity=discord.Game(name="{0} | {1} CET".format(
-            game["name"],
-            timeElectricBoogaloo
+async def change_status(game, time, started=False, tmrw=False):
+    if started:
+        await client.change_presence(status=discord.Status.dnd ,activity=discord.Game(name="{0} {1}".format(
+            game,
+            settings.sessionRightNowMessage
         )))
     else:
-        await client.change_presence(activity=discord.Game(name="{0} | {1} CET".format(
-            statusMessage,
-            timeElectricBoogaloo
-        )))
+        if tmrw:
+            await client.change_presence(status=discord.Status.idle ,activity=discord.Game(name="{0} | {1} tomorrow {2}".format(
+                game,
+                time,
+                settings.timezone
+            )))
+        else:
+            await client.change_presence(status=discord.Status.idle ,activity=discord.Game(name="{0} | {1} {2}".format(
+                game,
+                time,
+                settings.timezone
+            )))
+
+
+async def clear():
+    global currentSessionGame
+    global sessionTime
+    global foundGame
+    global whoReactedWithYes
+    global whoReactedWithMaybe
+    global sessionOwner
+    global stopTime
+    global tmrw
+    await settings.messageToPing.unpin()
+    settings.messageToPing = None
+    sessionOwner = 0
+    whoReactedWithYes = []
+    whoReactedWithMaybe = []
+    foundGame = False
+    tmrw = False
+    currentSessionGame = {}
+    sessionTime = datetime.datetime(datetime.datetime.now().year,
+                                    datetime.datetime.now().month,
+                                    datetime.datetime.now().day,
+                                    20, 0, 0) + datetime.timedelta(days=1)
+    stopTime = datetime.datetime(datetime.datetime.now().year,
+                                 datetime.datetime.now().month,
+                                 datetime.datetime.now().day,
+                                 5, 0, 0) + datetime.timedelta(days=1)
+    await client.change_presence(activity=discord.Game(name=settings.noGameMessage))
+
+async def can_use_command(ctx):
+    if ctx.author.id not in settings.bannedUsers:
+        if ctx.channel.id in settings.gameChannels:
+            if not bool(currentSessionGame):
+                return True
+            else:
+                if ctx.channel.id == currentSessionGame["channelID"]:
+                    return True
+                else:
+                    await ctx.send("There is already a session in <#{0}>".format(currentSessionGame["channelID"]))
+                    return False
+        else:
+            await ctx.send("This isn't a game channel!")
+            return False
+    else:
+        await ctx.send("You have been banned from using commands!")
+        return False
 
 
 @client.event
 async def on_ready():
     print("Bot is ready")
-    stop_session.start()
     change_status_at_session_start.start()
     await client.change_presence(activity=discord.Game(name=settings.noGameMessage))
 
 
 @client.event
 async def on_reaction_add(reaction, user):
-    if str(reaction) == settings.emojis[0]:
-        if user.id == settings.botID:
-            pass
-        else:
-            games.peopleWhoReacted.append(user.id)
+    global whoReactedWithYes
+    global whoReactedWithMaybe
+    if bool(currentSessionGame):
+        if str(reaction) == settings.emojis[0] and reaction.message.id == settings.messageToPing.id:
+            if user.id == client.user.id:
+                pass
+            else:
+                whoReactedWithYes.append(user.id)
+
+        if str(reaction) == settings.emojis[1] and reaction.message.id == settings.messageToPing.id:
+            if user.id == client.user.id:
+                pass
+            else:
+                whoReactedWithMaybe.append(user.id)
 
 
 @client.event
-async def on_reaction_remove(reaction, user):
-    if str(reaction) == settings.emojis[0]:
-        games.peopleWhoReacted.remove(user.id)
+async def on_raw_reaction_remove(payload):
+    global whoReactedWithYes
+    global whoReactedWithMaybe
+    if bool(currentSessionGame):
+        if payload.emoji.name == settings.emojisName[0]:
+            whoReactedWithYes.remove(payload.user_id)
+
+        if payload.emoji.name == settings.emojisName[1]:
+            whoReactedWithMaybe.remove(payload.user_id)
 
 
-@client.command()
-async def hostgame(ctx, timeTheTrilogy=settings.defaultGameTime.strftime("%H:%M"), *, statusMessage=""):
-    if games.currentGame == "":
-        gameCheck = 0
-        for game in games.gameList:
+@client.command(description=settings.descriptions["updatesettings"])
+@has_permissions(administrator=True)
+async def updatesettings(ctx):
+    if not bool(currentSessionGame):
+        reload(settings)
+        await ctx.send("The settings have been updated!")
+    else:
+        await ctx.send("When the session ends, or it might break!")
+    
+@updatesettings.error
+async def updatesettings_error(error, ctx):
+    pass
+
+@client.command(description=settings.descriptions["hostgame"])
+async def hostgame(ctx, time="20:00", *, statusMessage=""):
+    if await can_use_command(ctx):
+        for game in settings.gameList:
             if game["channelID"] == ctx.channel.id:
-                games.sessionOwner = ctx.author.id
-                games.currentGame = game
-                games.currentSessionTime = timeTheTrilogy
-                await ctx.send("{0} session at {1} CET?".format(
-                    game["name"],
-                    timeTheTrilogy
-                ))
-                games.messageToPing = ctx.channel.last_message
-                await games.messageToPing.pin()
-                for emoji in settings.emojis:
-                    await games.messageToPing.add_reaction(emoji)
-                await change_status(game, timeTheTrilogy, statusMessage)
-            else:
-                gameCheck = gameCheck + 1
-                if gameCheck == len(games.gameList):
-                    await ctx.send("This isn't a game channel!")
+                global currentSessionGame
+                global sessionOwner
+                global sessionTime
+                global stopTime
+                global tmrw
+
+                currentSessionGame = game
+                sessionOwner = ctx.author.id
+
+                if not statusMessage == "":
+                    tempMessage = " " + statusMessage + " "
                 else:
-                    continue
-    else:
-        await ctx.send("{0} is already in session!".format(games.currentGame["name"]))
+                    tempMessage = " {0}".format(statusMessage)
+
+                sessionTime = datetime.datetime(datetime.datetime.now().year,
+                                                datetime.datetime.now().month,
+                                                datetime.datetime.now().day,
+                                                int(time[0:2]),
+                                                int(time[3:5]), 0)
+                stopTime = datetime.datetime(datetime.datetime.now().year,
+                                             datetime.datetime.now().month,
+                                             datetime.datetime.now().day,
+                                             5, 0, 0) + datetime.timedelta(days=1)
+
+                if int(seconds_until_time(sessionTime)) <= 0:
+                    sessionTime += datetime.timedelta(days=1)
+                    stopTime += datetime.timedelta(days=1)
+                    await change_status(game["name"], time, False, True)
+                    tmrw = True
+                else:
+                    await change_status(game["name"], time, False)
+
+                await ctx.send("<@&{0}>{1}session at {2} {3}?".format(currentSessionGame["roleID"],
+                                                                      tempMessage,
+                                                                      time,
+                                                                      settings.timezone
+                                                                      ))
+                await asyncio.sleep(0.5)
+                settings.messageToPing = ctx.channel.last_message
+                await settings.messageToPing.pin()
+                for emoji in settings.emojis:
+                    await settings.messageToPing.add_reaction(emoji)
+            else:
+                continue
 
 
-@client.command()
+@client.command(description=settings.descriptions["endhost"])
 async def endhost(ctx):
-    if seconds_until_time(
-        datetime.datetime(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day,
-                          int(games.currentSessionTime[0:2]), int(games.currentSessionTime[3:6]), 00)) <= 0:
-        await ctx.send("{0} has ended!".format(games.currentGame["name"]))
-        await games.messageToPing.unpin()
-        await clear_status()
-    else:
-        await ctx.send("Game session hasn't even started, you can't end it!")
-
-
-@client.command()
-async def cancelhost(ctx):
-    if ctx.author.id in [108530201708773376, 277017606446252032, 337138856858222592, games.sessionOwner]:
-        users = ""
-        for x in games.peopleWhoReacted:
-            users = users + "<@{0}> ".format(x)
-        await ctx.send("{0}session has been canceled!".format(users))
-        await games.messageToPing.unpin()
-        await clear_status()
-    else:
-        await ctx.send("You can't cancel the current session, you aren't the person who made it!")
-        await ctx.send("If the session is over, use `?endhost` instead!")
-
-
-@client.command()
-async def time(ctx):
-    minutes = int(seconds_until_time(
-        datetime.datetime(datetime.datetime.now().year, datetime.datetime.now().month, datetime.datetime.now().day,
-                          int(games.currentSessionTime[0:2]), int(games.currentSessionTime[3:6]), 00)) / 60)
-    if minutes <= 0:
-        await ctx.send("The session already started!")
-    else:
-        hours = 0
-        while minutes >= 60:
-            minutes = minutes - 60
-            hours = hours + 1
-        if hours == 0:
-            await ctx.send("{0} minutes remaining until the game session!".format(int(minutes)))
+    global sessionTime
+    global whoReactedWithYes
+    if await can_use_command(ctx):
+        if seconds_until_time(sessionTime) >= 0:
+            await ctx.send("Can't end the session, it hasn't even started yet!")
         else:
-            await ctx.send("{0} hours and {1} minutes remaining until the game session!".format(
-                int(hours),
-                int(minutes))
-            )
+            await ctx.send("Session has been ended!")
+            await clear()
 
 
-@tasks.loop(seconds=int(seconds_until_time(settings.stopTime) + 86400))
-async def stop_session():
-    await clear_status()
+@client.command(description=settings.descriptions["cancelhost"])
+async def cancelhost(ctx):
+    global sessionOwner
+    global sessionTime
+    if await can_use_command(ctx):
+        if ctx.author.id in [sessionOwner, 108530201708773376, 337138856858222592, 277017606446252032]:
+            if seconds_until_time(sessionTime) > 0:
+                users = ""
+                for x in whoReactedWithYes:
+                    users = users + "<@{0}>, ".format(x)
+                if users == "":
+                    users = "S"
+                else:
+                    users = users + "s"
+                await ctx.send("{0}ession has been cancelled!".format(users))
+                await clear()
+            else:
+                await ctx.send("Session is already started!\nUse `?endhost` instead!")
+        else:
+            await ctx.send("You can't use this command, you're not the session owner!")
+
+
+@client.command(description=settings.descriptions["time"])
+async def time(ctx):
+    if await can_use_command(ctx):
+        if bool(currentSessionGame):
+            seconds = seconds_until_time(sessionTime)
+            if seconds > 0:
+                minutes = 0
+                hours = 0
+                while seconds >= 60:
+                    seconds -= 60
+                    minutes += 1
+                while minutes >= 60:
+                    minutes -= 60
+                    hours += 1
+                if minutes == 0:
+                    await ctx.send("{0} seconds remaining until the game session!".format(seconds))
+                elif hours == 0:
+                    await ctx.send("{0} minutes and {1} seconds remaining until the game session!".format(
+                        minutes,
+                        seconds
+                    ))
+                else:
+                    await ctx.send("{0} hours, {1} minutes and {2} seconds remaining until the game session!".format(
+                        hours,
+                        minutes,
+                        seconds
+                    ))
+            else:
+                await ctx.send("Session has already started!")
+        else:
+            await ctx.send("There is no session!")
+
+
+@client.command(description=settings.descriptions["status"])
+async def status(ctx):
+    global whoReactedWithYes
+    global whoReactedWithMaybe
+    if await can_use_command(ctx):
+        if bool(currentSessionGame):
+            statusStats = discord.Embed(title="Status",
+                                        color=0xf4adf9)
+            tempReactYes = ""
+            tempReactMaybe = ""
+            for user in whoReactedWithYes:
+                tempReactYes = tempReactYes + f"<@{user}> "
+
+            for user in whoReactedWithMaybe:
+                tempReactMaybe = tempReactMaybe + f"<@{user}> "
+
+            if tempReactYes == "":
+                tempReactYes = "Nobody"
+
+            if tempReactMaybe == "":
+                tempReactMaybe = "Nobody"
+
+            statusStats.add_field(
+                name="People who are sure {0} {1}".format(
+                    settings.emojis[0], len(whoReactedWithYes)),
+                value=tempReactYes,
+                inline=False)
+
+            statusStats.add_field(
+                name="People who are unsure {0} {1}".format(
+                    settings.emojis[1], len(whoReactedWithMaybe)),
+                value=tempReactMaybe,
+                inline=False)
+
+            await ctx.send(embed=statusStats)
+        else:
+            await ctx.send("There is no session!")
+
+
+# @client.command(description=settings.descriptions["addrole"])
+# async def addrole(ctx, user: discord.Member, role: discord.Role):
 
 
 @tasks.loop(seconds=10)
+# @tasks.loop(minutes=5)
 async def change_status_at_session_start():
-    if games.currentGame == "":
-        pass
-    else:
-        if games.sessionRightNow == 0:
-            await asyncio.sleep(seconds_until_time(
-                datetime.datetime(datetime.datetime.now().year, datetime.datetime.now().month,
-                                  datetime.datetime.now().day,
-                                  int(games.currentSessionTime[0:2]), int(games.currentSessionTime[3:6]), 00)) - 600)
-            await games.messageToPing.channel.send("<@&{0}> in 10 minutes!".format(games.currentGame["roleID"]))
-            await asyncio.sleep(600)
-            await client.change_presence(
-                activity=discord.Game(name="{0} is in session!".format(games.currentGame["name"])))
-            playerCount = str(games.messageToPing.reactions)
-            await games.messageToPing.channel.send(
-                "<@&{0}> session started! There are `{1}` people who reacted with {2}".format(
-                    games.currentGame["roleID"],
-                    int(playerCount[109:110]) - 1,
-                    settings.emojis[int(0)]
-                ))
-            games.sessionRightNow = 1
-            await asyncio.sleep(600)
-            games.peopleInVC = client.get_channel(settings.sessionVCID).voice_states.keys()
-            print(games.peopleInVC)
-            for user in games.peopleWhoReacted:
-                if user in games.peopleInVC:
-                    pass
-                else:
-                    if user < 10:
-                        pass
-                    else:
-                        games.peopleWhoReactedAndNotInVC.append(user)
-            users = ""
-            for x in games.peopleWhoReactedAndNotInVC:
-                users = users + "<@{0}> ".format(x)
-            if users == "":
+    global tmrw
+    global stopTime
+    if bool(currentSessionGame):
+        # timeToSleep = 600
+        timeToSleep = 10
+        if tmrw:
+            await asyncio.sleep(seconds_until_time(datetime.datetime(datetime.datetime.now().year,
+                                                                     datetime.datetime.now().month,
+                                                                     datetime.datetime.now().day,
+                                                                     0, 0, 0)))
+            await change_status(currentSessionGame["name"], sessionTime, False, False)
+        await asyncio.sleep(seconds_until_time(sessionTime) - timeToSleep)
+        stopTime = datetime.datetime(datetime.datetime.now().year,
+                                     datetime.datetime.now().month,
+                                     datetime.datetime.now().day,
+                                     5, 0, 0) + datetime.timedelta(days=1)
+        await settings.messageToPing.channel.send("<@&{0}> in 10 minutes!".format(currentSessionGame["roleID"]))
+        await asyncio.sleep(timeToSleep)
+        if len(whoReactedWithYes) == 1:
+            peopleVPerson = "is one person"
+        else:
+            peopleVPerson = "are {0} people".format(
+                len(whoReactedWithYes))
+        await settings.messageToPing.channel.send(
+            "{0} session started! There {1} who reacted with {2}".format(
+                currentSessionGame["name"],
+                peopleVPerson,
+                settings.emojis[int(0)]
+            ))
+        await change_status(currentSessionGame["name"], sessionTime, True)
+        await asyncio.sleep(timeToSleep)
+        peopleWhoReactedAndNotInVC = []
+        peopleInVC = client.get_channel(
+            settings.sessionVCID).voice_states.keys()
+        for user in whoReactedWithYes:
+            if user in peopleInVC:
                 pass
             else:
-                await games.messageToPing.channel.send("{0} you're late, get in the VC!".format(users))
-        else:
+                if user == client.user.id:
+                    pass
+                else:
+                    peopleWhoReactedAndNotInVC.append(user)
+        users = ""
+        for x in peopleWhoReactedAndNotInVC:
+            users = users + "<@{0}> ".format(x)
+        if users == "":
             pass
+        else:
+            await settings.messageToPing.channel.send("{0}you're late, get in the VC!".format(users))
+        x = seconds_until_time(stopTime)
+        await asyncio.sleep(seconds_until_time(stopTime))
+        await clear()
 
-
-client.run(os.environ["BOTTOKEN"])
+try:
+    client.run(os.environ["BOTTOKEN"])
+except KeyboardInterrupt:
+    client.logout()
