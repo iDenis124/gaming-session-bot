@@ -24,21 +24,21 @@ stopTime = datetime.datetime(datetime.datetime.now().year,
                              datetime.datetime.now().month,
                              datetime.datetime.now().day,
                              5, 0, 0) + datetime.timedelta(days=1)
-tmrw = False
+tomorrow = False
 
 
 def seconds_until_time(val2):
     return int((val2 - datetime.datetime.now()).total_seconds())
 
 
-async def change_status(game, time, started=False, tmrw=False):
+async def change_status(game, time, started=False, tomorrow=False):
     if started:
         await client.change_presence(status=discord.Status.dnd ,activity=discord.Game(name="{0} {1}".format(
             game,
             settings.sessionRightNowMessage
         )))
     else:
-        if tmrw:
+        if tomorrow:
             await client.change_presence(status=discord.Status.idle ,activity=discord.Game(name="{0} | {1} tomorrow {2}".format(
                 game,
                 time,
@@ -60,14 +60,14 @@ async def clear():
     global whoReactedWithMaybe
     global sessionOwner
     global stopTime
-    global tmrw
+    global tomorrow
     await settings.messageToPing.unpin()
     settings.messageToPing = None
     sessionOwner = 0
     whoReactedWithYes = []
     whoReactedWithMaybe = []
     foundGame = False
-    tmrw = False
+    tomorrow = False
     currentSessionGame = {}
     sessionTime = datetime.datetime(datetime.datetime.now().year,
                                     datetime.datetime.now().month,
@@ -103,6 +103,12 @@ async def on_ready():
     print("Bot is ready")
     change_status_at_session_start.start()
     await client.change_presence(activity=discord.Game(name=settings.noGameMessage))
+
+
+@client.event
+async def on_member_join(member):
+    if settings.joinMessage != "":
+        await member.send(settings.joinMessage)
 
 
 @client.event
@@ -157,7 +163,7 @@ async def hostgame(ctx, time="20:00", *, statusMessage=""):
                 global sessionOwner
                 global sessionTime
                 global stopTime
-                global tmrw
+                global tomorrow
 
                 currentSessionGame = game
                 sessionOwner = ctx.author.id
@@ -181,7 +187,7 @@ async def hostgame(ctx, time="20:00", *, statusMessage=""):
                     sessionTime += datetime.timedelta(days=1)
                     stopTime += datetime.timedelta(days=1)
                     await change_status(game["name"], time, False, True)
-                    tmrw = True
+                    tomorrow = True
                 else:
                     await change_status(game["name"], time, False)
 
@@ -312,12 +318,12 @@ async def status(ctx):
 @tasks.loop(seconds=10)
 # @tasks.loop(minutes=5)
 async def change_status_at_session_start():
-    global tmrw
+    global tomorrow
     global stopTime
     if bool(currentSessionGame):
         # timeToSleep = 600
         timeToSleep = 10
-        if tmrw:
+        if tomorrow:
             await asyncio.sleep(seconds_until_time(datetime.datetime(datetime.datetime.now().year,
                                                                      datetime.datetime.now().month,
                                                                      datetime.datetime.now().day,

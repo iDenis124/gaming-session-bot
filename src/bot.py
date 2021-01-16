@@ -106,6 +106,12 @@ async def on_ready():
 
 
 @client.event
+async def on_member_join(member):
+    if settings.joinMessage != "":
+        await member.send(settings.joinMessage)
+        
+        
+@client.event
 async def on_reaction_add(reaction, user):
     global whoReactedWithYes
     global whoReactedWithMaybe

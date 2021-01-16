@@ -19,6 +19,8 @@ Copy it for how many games you want
 - `allRoles` what roles to add when
 - `noGameMessage` the status message displayed when no session is planned
 - `sessionRightNowMessage` what gets appended after the game name when the session is play
+- `joinMessage` what the bot DMs a new user when they join  
+Leave empty for no DM
 - `emojis` the bot only cares about the first two emojis, but you can add as many as you like
 To get what you put in, go into discord, type the emoji, then add `\` before and send the message  
 Copy that and put it here

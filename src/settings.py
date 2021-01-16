@@ -11,6 +11,7 @@ for game in gameList:
     allRoles.append(game["roleID"])
 noGameMessage = ""
 sessionRightNowMessage = ""
+joinMessage = ""
 emojis = ["", ""]
 emojisName = ["", ""]
 sessionVCID = 0

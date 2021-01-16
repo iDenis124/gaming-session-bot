@@ -36,6 +36,7 @@ for game in gameList:
     allRoles.append(game["roleID"])
 noGameMessage = "Nothing planned yet!"
 sessionRightNowMessage = "| now!"
+joinMessage = "Welcome to gaymer, please read <#737636581510217799> and enjoy your stay"
 emojis = ["<:millieHappy:776507012832952341>", "<:millieOhNo:776507015258177566>"]
 emojisName = ["darkside_ok", "thonkside"]
 sessionVCID = 783656335350431755
