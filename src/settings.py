@@ -1,49 +1,24 @@
-AmongUs = {
-    "name": "Among Us",
-    "channelID": 775765356257083434,
-    "roleID": 776530476566315068
+Example = {
+    "name": "", 
+    "channelID": 0, 
+    "roleID": 0    
 }
-SCP = {
-    "name": "SCP: SL",
-    "channelID": 768845793586053190,
-    "roleID": 776530859099553832
-}
-GMod = {
-    "name": "Garry's Mod",
-    "channelID": 768844585271033888,
-    "roleID": 776530820655349760
-}
-Minecraft = {
-    "name": "Minecraft",
-    "channelID": 737250225735073852,
-    "roleID": 776530927702245421
-}
-Test = {
-    "name": "Test",
-    "channelID": 781207553530527774,
-    "roleID": 781210527757762580
-}
-Generic = {
-    "name": "Generic",
-    "channelID": 781207580672393286,
-    "roleID": 781229978137526353
-}
-gameList = [AmongUs, SCP, GMod, Minecraft, Test, Generic]
+gameList = [Example]
 gameChannels = []
 allRoles = [691053724826599484]
 for game in gameList:
     gameChannels.append(game["channelID"])
     allRoles.append(game["roleID"])
-noGameMessage = "Nothing planned yet!"
-sessionRightNowMessage = "| now!"
-emojis = ["<:millieHappy:776507012832952341>", "<:millieOhNo:776507015258177566>"]
-emojisName = ["darkside_ok", "thonkside"]
-sessionVCID = 783656335350431755
-timezone = "CET"
+noGameMessage = ""
+sessionRightNowMessage = ""
+emojis = ["", ""]
+emojisName = ["", ""]
+sessionVCID = 0
+timezone = ""
 bannedUsers = []
 messageToPing = None
 sessionTime = {
-    "hour": 20,
+    "hour": 0,
     "minute": 0
 }
 descriptions = {
