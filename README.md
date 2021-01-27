@@ -1,8 +1,8 @@
 # Game session bot
-This is a discord bot for hosting game sessions
+This is a Discord bot for hosting game sessions
 ## Installing it
 You need the following:
-- Python 3.x (made for 3.8 in mind)
+- Python 3.x (made with 3.8 in mind)
 - [discord.py](https://github.com/Rapptz/discord.py)
 - An environment variable called `BOTTOKEN` containing the token  
 Copy both `bot.py` and `settings.py` in a folder (copy from `src` not `example`)
