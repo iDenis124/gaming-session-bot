@@ -210,52 +210,54 @@ async def hostgame(ctx, time="20:00", *, statusMessage=""):
                 await settings.messageToPin.pin()
                 for emoji in settings.emojis:
                     await settings.messageToPin.add_reaction(emoji)
-
-                timeToSleep = 600
-                # timeToSleep = 10
-                if tomorrow:
-                    await asyncio.sleep(seconds_until_time(datetime.datetime(datetime.datetime.now().year,
-                                                                             datetime.datetime.now().month,
-                                                                             datetime.datetime.now().day,
-                                                                             0, 0, 0)))
-                    await change_status(currentSessionGame["name"], sessionTime, False, False)
-                await asyncio.sleep(seconds_until_time(sessionTime) - timeToSleep)
-                await settings.messageToPin.channel.send("<@&{0}> in 10 minutes!".format(currentSessionGame["roleID"]))
-                await asyncio.sleep(timeToSleep)
-                if len(whoReactedWithYes) == 1:
-                    peopleVPerson = "is one person"
-                else:
-                    peopleVPerson = "are {0} people".format(
-                        len(whoReactedWithYes))
-                await settings.messageToPin.channel.send(
-                    "{0} session started! There {1} who reacted with {2}".format(
-                        currentSessionGame["name"],
-                        peopleVPerson,
-                        settings.emojis[int(0)]
-                    ))
-                await change_status(currentSessionGame["name"], sessionTime, True, False)
-                await asyncio.sleep(timeToSleep)
-                peopleWhoReactedAndNotInVC = []
-                peopleInVC = client.get_channel(
-                    settings.sessionVCID).voice_states.keys()
-                for user in whoReactedWithYes:
-                    if user in peopleInVC:
-                        pass
+                try:
+                    timeToSleep = 600
+                    # timeToSleep = 10
+                    if tomorrow:
+                        await asyncio.sleep(seconds_until_time(datetime.datetime(datetime.datetime.now().year,
+                                                                                 datetime.datetime.now().month,
+                                                                                 datetime.datetime.now().day,
+                                                                                 0, 0, 0)))
+                        await change_status(currentSessionGame["name"], sessionTime, False, False)
+                    await asyncio.sleep(seconds_until_time(sessionTime) - timeToSleep)
+                    await settings.messageToPin.channel.send("<@&{0}> in 10 minutes!".format(currentSessionGame["roleID"]))
+                    await asyncio.sleep(timeToSleep)
+                    if len(whoReactedWithYes) == 1:
+                        peopleVPerson = "is one person"
                     else:
-                        if user == client.user.id:
+                        peopleVPerson = "are {0} people".format(
+                            len(whoReactedWithYes))
+                    await settings.messageToPin.channel.send(
+                        "{0} session started! There {1} who reacted with {2}".format(
+                            currentSessionGame["name"],
+                            peopleVPerson,
+                            settings.emojis[int(0)]
+                        ))
+                    await change_status(currentSessionGame["name"], sessionTime, True, False)
+                    await asyncio.sleep(timeToSleep)
+                    peopleWhoReactedAndNotInVC = []
+                    peopleInVC = client.get_channel(
+                        settings.sessionVCID).voice_states.keys()
+                    for user in whoReactedWithYes:
+                        if user in peopleInVC:
                             pass
                         else:
-                            peopleWhoReactedAndNotInVC.append(user)
-                users = ""
-                for x in peopleWhoReactedAndNotInVC:
-                    users = users + "<@{0}> ".format(x)
-                if users == "":
+                            if user == client.user.id:
+                                pass
+                            else:
+                                peopleWhoReactedAndNotInVC.append(user)
+                    users = ""
+                    for x in peopleWhoReactedAndNotInVC:
+                        users = users + "<@{0}> ".format(x)
+                    if users == "":
+                        pass
+                    else:
+                        await settings.messageToPin.channel.send("{0}you're late, get in the VC!".format(users))
+                    x = seconds_until_time(stopTime)
+                    await asyncio.sleep(seconds_until_time(stopTime))
+                    await clear()
+                except KeyError:
                     pass
-                else:
-                    await settings.messageToPin.channel.send("{0}you're late, get in the VC!".format(users))
-                x = seconds_until_time(stopTime)
-                await asyncio.sleep(seconds_until_time(stopTime))
-                await clear()
             else:
                 continue
 
