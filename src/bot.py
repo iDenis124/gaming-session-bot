@@ -211,8 +211,8 @@ async def hostgame(ctx, time="20:00", *, statusMessage=""):
                 for emoji in settings.emojis:
                     await settings.messageToPin.add_reaction(emoji)
 
-                # timeToSleep = 600
-                timeToSleep = 10
+                timeToSleep = 600
+                # timeToSleep = 10
                 if tomorrow:
                     await asyncio.sleep(seconds_until_time(datetime.datetime(datetime.datetime.now().year,
                                                                              datetime.datetime.now().month,
